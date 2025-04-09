@@ -29,12 +29,10 @@ def add_noise_to_event_times(
 def apply_gaussian_noise(df: pd.DataFrame, time_column_name: str, snr: float | None) -> pd.DataFrame:
     if snr is None or snr <= 0:
         raise InputError("For Gaussian noise, 'snr' must be provided and > 0.")
-
     variance = np.var(df[time_column_name])
     std_dev = np.sqrt(variance / snr)
     noise = np.random.normal(0, std_dev, size=len(df))
     info(f"Applying Gaussian noise with std dev {std_dev:.4f}.")
-
     df[time_column_name] += np.round(noise)
     df[time_column_name] = df[time_column_name].clip(lower=0.0)
     return df

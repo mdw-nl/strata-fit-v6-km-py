@@ -9,3 +9,10 @@ class NoiseType(str, Enum):
     NONE = "NONE"
     GAUSSIAN = "GAUSSIAN"
     POISSON = "POISSON"
+
+# Hyperparameters for column names.
+# After preprocessing, the survival data will always have these standardized column names.
+DEFAULT_INTERVAL_START_COLUMN = "interval_start"
+DEFAULT_INTERVAL_END_COLUMN = "interval_end"
+DEFAULT_EVENT_INDICATOR_COLUMN = "event_type"
+MINIMUM_ORGANIZATIONS = 3

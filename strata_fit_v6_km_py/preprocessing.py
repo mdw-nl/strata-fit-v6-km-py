@@ -5,7 +5,12 @@ into standardized interval survival data for federated KM.
 
 import pandas as pd
 import numpy as np
-from .types import EventType
+from .types import (
+    EventType, 
+    DEFAULT_INTERVAL_START_COLUMN,
+    DEFAULT_INTERVAL_END_COLUMN,
+    DEFAULT_EVENT_INDICATOR_COLUMN
+)
 
 def strata_fit_data_to_km_input(df: pd.DataFrame) -> pd.DataFrame:
     # Sort data by patient ID and follow-up time
@@ -52,9 +57,9 @@ def strata_fit_data_to_km_input(df: pd.DataFrame) -> pd.DataFrame:
     )
 
     # Step 5: Define interval start, interval end, and event type
-    summary['interval_start'] = np.where(summary['cens'] == 'interval', 0, summary['TTE'])
-    summary['interval_end'] = np.where(summary['cens'] == 'interval', summary['minFU'], summary['TTE'])
-    summary['event_type'] = np.select(
+    summary[DEFAULT_INTERVAL_START_COLUMN] = np.where(summary['cens'] == 'interval', 0, summary['TTE'])
+    summary[DEFAULT_INTERVAL_END_COLUMN] = np.where(summary['cens'] == 'interval', summary['minFU'], summary['TTE'])
+    summary[DEFAULT_EVENT_INDICATOR_COLUMN] = np.select(
         condlist=[
             (summary['cens'] == 'interval'),
             (summary['cens'] == 'no')
