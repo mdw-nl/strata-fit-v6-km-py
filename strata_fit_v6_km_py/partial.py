@@ -66,7 +66,12 @@ def get_km_event_table(
     df = add_noise_to_event_times(df, DEFAULT_INTERVAL_END_COLUMN, noise_type, snr, random_seed)
 
     info("Constructing event table based on unique event times.")
-    event_table = pd.DataFrame({DEFAULT_INTERVAL_START_COLUMN: unique_event_times})
+    event_table = (
+        pd.DataFrame(index=sorted(unique_event_times))
+        .rename_axis(DEFAULT_INTERVAL_START_COLUMN)
+        .reset_index()  
+    )
+    
 
     # Count exact events
     exact_events = df[df[DEFAULT_EVENT_INDICATOR_COLUMN] == EventType.EXACT.value]
@@ -84,10 +89,15 @@ def get_km_event_table(
     info(f"Interval-censored events counted: {interval_counts.sum()}.")
 
     # Assemble the event table
-    event_table["removed"] = event_counts + censored_counts + interval_counts
-    event_table["observed"] = event_counts
-    event_table["interval"] = interval_counts
-    event_table["censored"] = censored_counts
+    total_removed   = event_counts + censored_counts + interval_counts
+    total_observed  = event_counts
+    total_interval  = interval_counts
+    total_censored  = censored_counts
+
+    event_table["removed"]  = total_removed.values
+    event_table["observed"] = total_observed.values
+    event_table["interval"] = total_interval.values
+    event_table["censored"] = total_censored.values
 
     # Compute at-risk counts using reverse cumulative sum
     event_table["at_risk"] = event_table["removed"].iloc[::-1].cumsum().iloc[::-1]
