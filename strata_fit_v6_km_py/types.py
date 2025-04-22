@@ -15,4 +15,5 @@ class NoiseType(str, Enum):
 DEFAULT_INTERVAL_START_COLUMN = "interval_start"
 DEFAULT_INTERVAL_END_COLUMN = "interval_end"
 DEFAULT_EVENT_INDICATOR_COLUMN = "event_type"
+DEFAULT_CUMULATIVE_INCIDENCE_COLUMN = "cumulative_incidence"
 MINIMUM_ORGANIZATIONS = 3

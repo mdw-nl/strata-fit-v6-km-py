@@ -1,16 +1,38 @@
 import warnings
 import os
 import pandas as pd
+from pathlib import Path
 
 from vantage6.algorithm.tools.mock_client import MockAlgorithmClient
 
 warnings.filterwarnings("ignore")
 
+from strata_fit_v6_km_py.types import DEFAULT_INTERVAL_START_COLUMN, DEFAULT_CUMULATIVE_INCIDENCE_COLUMN
+
+def plot_km_curve(km_df):
+    import matplotlib.pyplot as plt
+    # convert months → years
+    years = km_df["interval_start"] / 12
+
+    plt.figure(figsize=(8, 5))
+    plt.step(
+        years,
+        km_df["cumulative_incidence"],   # or use 1 - survival_probability if you only stored survival
+        where="post",
+        lw=2
+    )
+    plt.xlabel("Years from diagnosis")
+    plt.ylabel("Cumulative incidence of D2T‑RA")
+    plt.title("Cumulative incidence of difficult‑to‑treat RA")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
 # --- 1. Define the per‐node datasets (raw STRATA‑FIT CSVs) ---
-path = "data_times/alpha.csv"
-dataset1 = {"database": os.path.join("tests", "data", path), "db_type": "csv"}
-dataset2 = {"database": os.path.join("tests", "data", path),  "db_type": "csv"}
-dataset3 = {"database": os.path.join("tests", "data", path), "db_type": "csv"}
+data_directory = Path("tests/data/data_times")
+dataset1 = {"database": data_directory / "alpha.csv", "db_type": "csv"}
+dataset2 = {"database": data_directory / "beta.csv",  "db_type": "csv"}
+dataset3 = {"database": data_directory / "gamma.csv", "db_type": "csv"}
 
 # We have three “organizations” in this mock run:
 org_ids = [0, 1, 2]
@@ -46,10 +68,13 @@ print("Kaplan–Meier curve (first 5 rows):")
 print(df_km.head(), "\n")
 
 print("Summary statistics:")
-print(df_km[["at_risk", "observed", "censored", "interval", "hazard", "survival_cdf"]].describe())
+print(df_km[["at_risk", "observed", "censored", "interval", "hazard", DEFAULT_CUMULATIVE_INCIDENCE_COLUMN]].describe())
 
 # Example assertion (ensure we have at least one time‐point and survival_cdf is ≤1):
 assert not df_km.empty
-assert df_km["survival_cdf"].max() <= 1.0
+assert df_km[DEFAULT_CUMULATIVE_INCIDENCE_COLUMN].max() <= 1.0
+
+# plotting
+plot_km_curve(df_km)
 
 print("\n✅ Central Kaplan–Meier test completed successfully.")

@@ -77,8 +77,8 @@ def reverse_engineer_strata_fit(suv_df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 # Example usage:
-input_times = Path("tests/data/data_times/Synthetic_interval_survival_data.csv")
-output_data = input_times.parent / "alpha.csv"
+input_times = Path("tests/data/data_times/synthetic_times_gamma.csv")
+output_data = input_times.parent / "gamma.csv"
 suv = pd.read_csv(input_times)
 raw = reverse_engineer_strata_fit(suv)
 raw.to_csv(output_data)

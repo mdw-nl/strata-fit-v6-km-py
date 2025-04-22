@@ -5,7 +5,12 @@ from vantage6.algorithm.client import AlgorithmClient
 from vantage6.algorithm.tools.util import info
 from vantage6.algorithm.tools.decorators import algorithm_client
 from vantage6.algorithm.tools.exceptions import PrivacyThresholdViolation
-from .types import NoiseType, DEFAULT_INTERVAL_START_COLUMN, MINIMUM_ORGANIZATIONS
+from .types import (
+    NoiseType,
+    DEFAULT_INTERVAL_START_COLUMN,
+    DEFAULT_CUMULATIVE_INCIDENCE_COLUMN,
+    MINIMUM_ORGANIZATIONS
+)
 
 @algorithm_client
 def kaplan_meier_central(
@@ -23,7 +28,10 @@ def kaplan_meier_central(
     Returns
     -------
     dict
-        The aggregated Kaplan-Meier event table as a JSON string.
+        The aggregated Kaplan-Meier event table as a JSON table with columns:
+      - interval_start
+      - removed, observed, interval, censored, at_risk, hazard
+      - cumulative_incidence
     """
     if not organizations_to_include:
         organizations_to_include = [org["id"] for org in client.organization.list()]
@@ -60,7 +68,7 @@ def kaplan_meier_central(
     info("Step 3: Aggregating local event tables.")
     km_df = pd.concat(local_event_tables).groupby(DEFAULT_INTERVAL_START_COLUMN, as_index=False).sum()
     km_df["hazard"] = (km_df["observed"] + km_df["interval"] * 0.5) / km_df["at_risk"]
-    km_df["survival_cdf"] = (1 - km_df["hazard"]).cumprod()
+    km_df[DEFAULT_CUMULATIVE_INCIDENCE_COLUMN] = 1 - (1 - km_df["hazard"]).cumprod()
 
     info("Kaplan-Meier curve with interval censoring computed.")
     return km_df.to_json()

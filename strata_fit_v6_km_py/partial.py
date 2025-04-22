@@ -22,14 +22,14 @@ def get_unique_event_times(
     random_seed: Optional[int] = None,
 ) -> List[float]:
     """
-    Preprocess the data and collect unique event times from the standardized survival columns.
+    Preprocess the data and collect unique event times from the standardized columns.
     """
     info("Starting get_unique_event_times task.")
     info("Running preprocessing on input data for unique event times.")
     df = strata_fit_data_to_km_input(df)
     info(f"Preprocessing complete. Processed {df.shape[0]} rows.")
 
-    # Apply noise to both survival columns.
+    # Apply noise to both time columns.
     info("Adding noise to interval start column.")
     df = add_noise_to_event_times(df, DEFAULT_INTERVAL_START_COLUMN, noise_type, snr, random_seed)
     info("Adding noise to interval end column.")
@@ -72,7 +72,6 @@ def get_km_event_table(
         .reset_index()  
     )
     
-
     # Count exact events
     exact_events = df[df[DEFAULT_EVENT_INDICATOR_COLUMN] == EventType.EXACT.value]
     event_counts = exact_events[DEFAULT_INTERVAL_START_COLUMN].value_counts().reindex(unique_event_times, fill_value=0)

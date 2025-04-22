@@ -27,6 +27,7 @@ setup(
     extras_require={
         "test": [
             'vantage6-algorithm-tools==4.9.1',
+            'matplotlib==3.10.1',
         ]
     }
 )
