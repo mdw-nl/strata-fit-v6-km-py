@@ -33,8 +33,15 @@ def compute_unique_dmards(df):
     return df.groupby('pat_ID', group_keys=False).apply(unique_classes)
 
 def strata_fit_data_to_km_input(df: pd.DataFrame) -> pd.DataFrame:
-    # Sort data by patient ID and follow-up time
+    # Sort data by patient ID and follow-up time and remove time before 2006
     df.sort_values(['pat_ID', 'Visit_months_from_diagnosis'], inplace=True)
+    shift_mask = df['Year_diagnosis'] < 2006
+    year_shift = 2006 - df.loc[shift_mask, 'Year_diagnosis']
+    df.loc[shift_mask, 'Visit_months_from_diagnosis'] = (
+        df.loc[shift_mask, 'Visit_months_from_diagnosis'] - year_shift * 12
+    )
+    df.loc[shift_mask, 'Year_diagnosis'] = 2006
+    df = df[df['Visit_months_from_diagnosis'] >= 0].reset_index(drop=True)
 
     # Compute cumulative unique DMARD classes
     df['cum_unique_btsDMARD'] = compute_unique_dmards(df)
