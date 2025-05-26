@@ -12,18 +12,14 @@ from strata_fit_v6_km_py.types import DEFAULT_INTERVAL_START_COLUMN, DEFAULT_CUM
 def plot_km_curve(km_df):
     import matplotlib.pyplot as plt
     # convert months → years
-    years = km_df["interval_start"] / 12
+    years = df_km["interval_start"] / 12
+    cum_inc = df_km["cumulative_incidence"]
 
     plt.figure(figsize=(8, 5))
-    plt.step(
-        years,
-        km_df["cumulative_incidence"],   # or use 1 - survival_probability if you only stored survival
-        where="post",
-        lw=2
-    )
+    plt.step(years, cum_inc, where='post', lw=2)
     plt.xlabel("Years from diagnosis")
-    plt.ylabel("Cumulative incidence of D2T‑RA")
-    plt.title("Cumulative incidence of difficult‑to‑treat RA")
+    plt.ylabel("Cumulative incidence of D2T-RA")
+    plt.title("Cumulative incidence of difficult-to-treat RA (KM estimate)")
     plt.grid(True)
     plt.tight_layout()
     plt.show()
@@ -68,7 +64,8 @@ print("Kaplan–Meier curve (first 5 rows):")
 print(df_km.head(), "\n")
 
 print("Summary statistics:")
-print(df_km[["at_risk", "observed", "censored", "interval", "hazard", DEFAULT_CUMULATIVE_INCIDENCE_COLUMN]].describe())
+# print(df_km[["at_risk", "observed", "censored", "interval", "hazard", DEFAULT_CUMULATIVE_INCIDENCE_COLUMN]].describe())
+print(df_km.describe())
 
 # Example assertion (ensure we have at least one time‐point and survival_cdf is ≤1):
 assert not df_km.empty
