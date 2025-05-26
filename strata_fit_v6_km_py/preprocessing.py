@@ -12,21 +12,40 @@ from .types import (
     DEFAULT_EVENT_INDICATOR_COLUMN
 )
 
+def compute_unique_dmards(df):
+    df = df.sort_values(['pat_ID', 'Visit_months_from_diagnosis']).copy()
+
+    def unique_classes(sub_df):
+        unique_b = []
+        unique_ts = []
+        counts = []
+
+        for b, t in zip(sub_df['bDMARD'], sub_df['tsDMARD']):
+            if not pd.isna(b) and b not in unique_b:
+                unique_b.append(b)
+            if not pd.isna(t) and t not in unique_ts:
+                unique_ts.append(t)
+            total_unique = len(set(unique_b + unique_ts))
+            counts.append(total_unique)
+
+        return pd.Series(counts, index=sub_df.index)
+
+    return df.groupby('pat_ID', group_keys=False).apply(unique_classes)
+
 def strata_fit_data_to_km_input(df: pd.DataFrame) -> pd.DataFrame:
     # Sort data by patient ID and follow-up time
     df.sort_values(['pat_ID', 'Visit_months_from_diagnosis'], inplace=True)
 
-    # Step 1: Cumulative treatment counts
-    df['cum_bDMARD'] = df.groupby('pat_ID')['bDMARD'].cumsum().fillna(0)
-    df['cum_tsDMARD'] = df.groupby('pat_ID')['tsDMARD'].cumsum().fillna(0)
-    df['cum_btsDMARD'] = df['cum_bDMARD'] + df['cum_tsDMARD']
-    df['cum_btsDMARDmin'] = df.groupby('pat_ID')['cum_btsDMARD'].cummin()
+    # Compute cumulative unique DMARD classes
+    df['cum_unique_btsDMARD'] = compute_unique_dmards(df)
+    df['cum_btsDMARDmin'] = df.groupby('pat_ID')['cum_unique_btsDMARD'].cummin()
+    
 
     # Rolling average DAS28 (optional improvement)
     df['rolling_avg_DAS28'] = df.groupby('pat_ID')['DAS28'].rolling(window=3, min_periods=1).mean().reset_index(level=0, drop=True)
 
     # Step 2: Define criteria for D2T RA
-    df['D2T_crit1'] = df['cum_btsDMARD'] > 1
+    df['D2T_crit1'] = df['cum_unique_btsDMARD'] >= 2
     df['D2T_crit2'] = (df['DAS28'] > 3.2) | (df['rolling_avg_DAS28'] > 3.2)
     df['D2T_crit3'] = (df['Pat_global'] > 50) | (df['Ph_global'] > 50)
 
