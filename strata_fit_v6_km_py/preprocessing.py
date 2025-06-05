@@ -13,6 +13,32 @@ from .types import (
 )
 
 def compute_unique_dmards(df):
+    """
+    Compute the cumulative count of unique bDMARD and tsDMARD drug classes used 
+    per patient over time.
+
+    The function assumes that `bDMARD` and `tsDMARD` columns contain integer-encoded
+    drug class identifiers (rather than one-hot or categorical format), consistent
+    with the schema defined in:
+    https://github.com/mdw-nl/strata-fit-data-schema/commit/056faf101ccd12ea555986ef6b0b1f0df90db2ce
+
+    For each patient (`pat_ID`), the function iterates through all visits sorted 
+    by `Visit_months_from_diagnosis` and tracks how many distinct drug classes 
+    (across both bDMARD and tsDMARD) have been used up to each timepoint.
+
+    This transformation is necessary to correctly identify transitions in 
+    therapeutic strategy (i.e., changes in mechanism of action), which are 
+    required for downstream time-to-event analyses such as the Kaplan-Meier 
+    algorithm used in STRATA-FIT.
+
+    Parameters:
+        df (pd.DataFrame): Input DataFrame with columns `pat_ID`, 
+                           `Visit_months_from_diagnosis`, `bDMARD`, `tsDMARD`.
+
+    Returns:
+        pd.Series: A Series with the cumulative number of unique DMARD 
+                   classes per visit, indexed like the input DataFrame.
+    """
     df = df.sort_values(['pat_ID', 'Visit_months_from_diagnosis']).copy()
 
     def unique_classes(sub_df):
@@ -33,6 +59,46 @@ def compute_unique_dmards(df):
     return df.groupby('pat_ID', group_keys=False).apply(unique_classes)
 
 def strata_fit_data_to_km_input(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Preprocess STRATA-FIT input data into interval survival format suitable 
+    for federated Kaplan-Meier analysis.
+
+    This function applies multiple transformations:
+    1. **Clipping diagnosis year**: Patients diagnosed before 2006 are shifted to 2006. 
+       Corresponding visit months are adjusted to preserve visit calendar dates.
+       Visits occurring before this clipped diagnosis time are removed.
+
+    2. **DMARD exposure tracking**: Calculates the cumulative number of unique 
+       bDMARD and tsDMARD drug classes used per patient. This is used to 
+       identify those who meet EULAR D2T RA criterion 1.
+
+    3. **Disease activity metrics**: Computes a rolling average of DAS28 to 
+       help assess sustained disease activity.
+
+    4. **D2T RA classification**: Applies simplified operational definitions for 
+       the three EULAR D2T RA criteria using available schema variables:
+         - Criterion 1: ≥2 distinct b/tsDMARD classes
+         - Criterion 2: DAS28 > 3.2 or rolling DAS28 > 3.2
+         - Criterion 3: Pat_global or Ph_global > 50
+       A patient is considered D2T RA if all three criteria are met at any visit.
+
+    5. **Per-patient aggregation**: Determines time-to-event (TTE), censoring status,
+       and constructs interval survival data fields:
+         - `interval_start`: 0 if interval-censored, otherwise TTE
+         - `interval_end`: min follow-up if interval-censored, otherwise TTE
+         - `event_indicator`: 'interval', 'exact', or 'censored' based on availability and criteria
+
+    Parameters:
+        df (pd.DataFrame): Raw STRATA-FIT input DataFrame containing variables such as 
+                           `pat_ID`, `Visit_months_from_diagnosis`, `bDMARD`, `tsDMARD`, 
+                           `DAS28`, `Pat_global`, `Ph_global`, `Year_diagnosis`, etc.
+
+    Returns:
+        pd.DataFrame: A summarized DataFrame (one row per patient) with:
+            - `interval_start`, `interval_end`, `event_indicator`
+            - `TTE`, `maxFU`, `minFU`, `D2T_RA_Ever`, `cens`
+            - Fields necessary for interval-censored survival modeling
+    """
     # Sort data by patient ID and follow-up time and remove time before 2006
     df.sort_values(['pat_ID', 'Visit_months_from_diagnosis'], inplace=True)
     shift_mask = df['Year_diagnosis'] < 2006
