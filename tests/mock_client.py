@@ -9,7 +9,7 @@ warnings.filterwarnings("ignore")
 
 from strata_fit_v6_km_py.types import DEFAULT_INTERVAL_START_COLUMN, DEFAULT_CUMULATIVE_INCIDENCE_COLUMN
 
-def plot_km_curve(km_df):
+def plot_km_curve(df_km):
     import matplotlib.pyplot as plt
     # convert months → years
     years = df_km["interval_start"] / 12
@@ -48,6 +48,7 @@ task = client.task.create(
     input_={
         "method": "kaplan_meier_central",
         "kwargs": {
+            'organizations_to_include': [0,1,2]
             # you can override noise parameters here if you like,
             # e.g. "noise_type": "GAUSSIAN", "snr": 10, "random_seed": 42
         }
